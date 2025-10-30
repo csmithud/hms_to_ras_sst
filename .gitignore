@@ -1,6 +1,6 @@
 #user defined
-inputs/
-outputs/
+inputs/*
+outputs/*
 
 
 # Byte-compiled / optimized / DLL files
