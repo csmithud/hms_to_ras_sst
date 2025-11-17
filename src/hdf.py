@@ -23,6 +23,7 @@ from datetime import datetime
 from collections import Counter
 import json
 import glob
+import fiona
 
 def get_current_ras_files(prj_file:pl.Path):
     """_summary_
@@ -291,19 +292,19 @@ def get_int_bc_lines(geom_file:pl.Path,inflow_huc:str):
 
 
 
-def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_index,int_bc_dict,int_r_index,int_r_bc_dict, src_index,src_bc_dict, inputs,outputs,project,huc,start_id,src_huc_hms,append=False, force=False):
+def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_index,int_bc_dict,int_r_index,int_r_bc_dict, src_index,src_bc_dict, inputs,outputs,project,huc,start_id,src_huc_hms,model_name_prefix,append=False, force=False):
     #set variables
     bc_info = {}
     bc_info['in_plan_path']= ext_bc_dict['in_plan_path']
     bc_info['in_flow_path']= ext_bc_dict['in_flow_path']
     plans = []
-    model_name = f'wy_gdg_{huc}' #folder within inputs folder    
+    model_name = f'{model_name_prefix}{huc}' #folder within inputs folder    
     #get us subbasins for flow data
     with open(inputs/project/'dictionaries'/'Junction_Subbasins.json') as src:
         j_connect_sub = json.load(src)
     #write copies of the data 
     if not os.path.exists(outputs/f'{model_name}.prj') or force:
-        prj_out_name = shutil.copy(inputs/project/huc[4:8]/huc/f'{model_name}.prj',outputs/f'{model_name}.prj')
+        prj_out_name = shutil.copy(inputs/project/'hydraulic_models'/huc/f'{model_name}.prj',outputs/f'{model_name}.prj')
     else:
         prj_out_name = outputs/f'{model_name}.prj'
     #geo_out_name = outputs/f'{model_name}.g{geo_id}'
@@ -341,23 +342,27 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
             ext_junc_finder = f'//{ext_junc}/FLOW-COMBINE/[\d\w\S]+'
             r = re.compile(ext_junc_finder)
             dss_matches = list(filter(r.match, dss_list))
-            ##added in function to copy upstream huc8 dss paths to the current dss file
-            if not dss_matches and src_huc_hms[ext_junc] != huc[:8]:
-                print(f'us_huc8_triggered_external_junction {src_huc_hms[ext_junc]}_{ext_junc}')
-                #dss_name_us = dss_name.replace('R','R-')
-                dss_name_us = dss_name
-                # assert os.path.exists(str(pl.Path(inputs/project/'us_dss'/f'HUC{huc[:8]}'/huc/f'us_dss_HUC{src_huc_hms[ext_junc][:8]}'/dss_name_us))), f'upstream dss file {dss_name_us} does not exist. Please request it from Dewberry for upstream huc8 {src_huc_hms[ext_junc][:8]}.'
-                # fid_us_huc = HecDss.Open(str(pl.Path(inputs/project/'us_dss'/f'HUC{huc[:8]}'/huc/f'us_dss_HUC{src_huc_hms[ext_junc][:8]}'/dss_name_us)))
-                assert os.path.exists(str(pl.Path(inputs/project/'transfer_dss'/f'{src_huc_hms[ext_junc][:8]}'/dss_name_us))), f'upstream dss file {dss_name_us} does not exist. Please request it from Dewberry for upstream huc8 {src_huc_hms[ext_junc][:8]}.'
-                fid_us_huc = HecDss.Open(str(pl.Path(inputs/project/'transfer_dss'/f'{src_huc_hms[ext_junc][:8]}'/dss_name_us)))
-                dss_list_us_huc = fid_us_huc.getPathnameList(pathname_pattern,sort=1)
-                r = re.compile(ext_junc_finder)
-                dss_matches = list(filter(r.match, dss_list_us_huc))
-                #copy_path             
-                for dss_match_us_huc in dss_matches:
-                    source_path = dss_match_us_huc
-                    target_path = dss_match_us_huc
-                    fid_us_huc.copyRecordsTo(fid,source_path,target_path)
+            # print('Quick check for external boundary condition. remove print statement after testing:',dss_matches,src_huc_hms[ext_junc],huc)
+            # ###################################################### MAJOR CHANGES REQUIRED. REVIEW.
+
+
+            # ##added in function to copy upstream huc8 dss paths to the current dss file
+            # if not dss_matches and src_huc_hms[ext_junc] != huc:
+            #     print(f'us_huc8_triggered_external_junction {src_huc_hms[ext_junc]}_{ext_junc}')
+            #     #dss_name_us = dss_name.replace('R','R-')
+            #     dss_name_us = dss_name
+            #     # assert os.path.exists(str(pl.Path(inputs/project/'us_dss'/f'HUC{huc[:8]}'/huc/f'us_dss_HUC{src_huc_hms[ext_junc][:8]}'/dss_name_us))), f'upstream dss file {dss_name_us} does not exist. Please request it from Dewberry for upstream huc8 {src_huc_hms[ext_junc][:8]}.'
+            #     # fid_us_huc = HecDss.Open(str(pl.Path(inputs/project/'us_dss'/f'HUC{huc[:8]}'/huc/f'us_dss_HUC{src_huc_hms[ext_junc][:8]}'/dss_name_us)))
+            #     assert os.path.exists(str(pl.Path(inputs/project/'transfer_dss'/f'{src_huc_hms[ext_junc][:8]}'/dss_name_us))), f'upstream dss file {dss_name_us} does not exist. Please request it from Dewberry for upstream huc8 {src_huc_hms[ext_junc][:8]}.'
+            #     fid_us_huc = HecDss.Open(str(pl.Path(inputs/project/'transfer_dss'/f'{src_huc_hms[ext_junc][:8]}'/dss_name_us)))
+            #     dss_list_us_huc = fid_us_huc.getPathnameList(pathname_pattern,sort=1)
+            #     r = re.compile(ext_junc_finder)
+            #     dss_matches = list(filter(r.match, dss_list_us_huc))
+            #     #copy_path             
+            #     for dss_match_us_huc in dss_matches:
+            #         source_path = dss_match_us_huc
+            #         target_path = dss_match_us_huc
+            #         fid_us_huc.copyRecordsTo(fid,source_path,target_path)
             
             #print(ext_junc)
             assert len(dss_matches) > 0, f'cannot find a match for {ext_junc_finder} in {dss_name}'
@@ -373,13 +378,14 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
             int_junc = int_bc_dict['junction'][i]
             #get relevant subbasins to re-write flow values
             int_sbs = j_connect_sub[int_junc]
+            # print('subbasin and junction',int_sbs,int_junc)
             #only add flow location information if there are contibuting subbasins
             if int_sbs:
                 int_junc_finder = f'//{int_junc}/FLOW-COMBINE/[\d\w\S]+'
                 #get all relevant dss paths and condense using wildcard
                 r = re.compile(int_junc_finder)
                 dss_matches = list(filter(r.match, dss_list))
-                
+                # print('DSS matches found:', dss_matches)
                 # ##NOT IMPLEMENTED function to copy upstream huc8 dss paths to the current dss file
                 # if not dss_matches and src_huc_hms[int_junc] != huc:
                 #     print('us_huc8_triggered_internal_junction')
@@ -409,6 +415,7 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
                 #create new path name
                 hg_name = hg_all[:hg_all.find('/FLOW-COMBINE/')]+'_SBS'+hg_all[hg_all.find('/FLOW-COMBINE/'):]
                 int_bc_dict['dss_path'][i] = hg_name
+                # print(hg_name)
                 create_junc_from_subs(int_junc,int_sbs,fid, dss_list,hg_name)
         
         #get relevant dss paths for reach internal boundaries
@@ -417,8 +424,8 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
             #get relevant junctions to re-write flow values
             reach = int_r_bc_dict['name'][i]
             us_junc = int_r_bc_dict['upstream'][i]
-            subtraction = int_r_bc_dict['subtraction'][i]
-            reduction = int_r_bc_dict['reduction'][i]
+            subtraction = int(int_r_bc_dict['subtraction'][i])
+            reduction = float(int_r_bc_dict['reduction'][i])
 
             #create a negative flow add flow location information if there are contibuting subbasins
             assert us_junc, f"no upstream junction connected to reach {int_r_bc_dict['name'][i]} with losses"
@@ -461,6 +468,7 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
         
         #set plan file names
         plan_out_name = outputs/f'{model_name}.p{start_id}'
+        print(plan_out_name)
         flow_out_name = outputs/f'{model_name}.u{start_id}'
         #write updated flow file
         
@@ -1083,13 +1091,16 @@ def add_inflow_bcs(in_geom_path,index,bc_dict,domain_geo, geo_out,add_breaklines
         g_o.write(geo_out_str)
 
 def create_junc_from_subs(int_junc,int_sbs,fid,dss_list,hg_name):
+    # print('starting variable input',int_sbs)
     diffs = {}
     #assume subbasins have the same time windows
     #get time windows
     int_sb_base = int_sbs[0]
     int_sb_finder = f'//{int_sb_base}/FLOW/[\d\w\S]+'
+    # print(int_sb_finder)
     r = re.compile(int_sb_finder)
     dss_matches = list(filter(r.match, dss_list))
+    # print('current dss matches',dss_matches)
     #get date differences  
     for dss_match in dss_matches:
         for compare in dss_matches:
@@ -1102,9 +1113,11 @@ def create_junc_from_subs(int_junc,int_sbs,fid,dss_list,hg_name):
                         if part not in diffs[i]:
                             diffs[i] = diffs[i]+[part]
     #hardcoded in part 4 dealing with time window. Need to assess whether there is a better way to do this
+    # print(diffs)
     for time_w in diffs[4]:
         flow_values = []
-        for int_sb in int_sbs:                  
+        for int_sb in int_sbs:
+            # print(time_w) 
             int_sb_finder = f'//{int_sb}/FLOW/{time_w}/[\d\w\S]+'
             r = re.compile(int_sb_finder)
             dss_matches = list(filter(r.match, dss_list))
@@ -1194,7 +1207,11 @@ def get_sst_storms_by_recurrence(huc,hms_shps,flag=True):
         events_dict[huc][ri] = []
         gdf = gpd.read_file(ri_shp)
         cols = list(gdf.columns.to_list())
-        r = re.compile('R\d+-Y\d+-E\d+')
+
+        #################################################################
+        #may require edits if the geojson being read changes, or if the naming convention for storms changes        
+        r = re.compile('P\d+_R-Y\d+-E\d+')
+        #################################################################
         col_matches = list(filter(r.match, cols))
         if col_matches:
             events_dict[huc][ri] = col_matches
@@ -1310,3 +1327,53 @@ def update_oos_bcs(in_geom_path,index,bc_dict,domain_geo, geo_out):
 
         with open(geo_out, "w") as g_o:
             g_o.write(geo_out_str)
+
+
+#######################################################################################
+#combine the schematics for all GDB in the project area. potentially do this once? 
+def locate_string_gdb_to_concat_gdf(gdb_path_list,locater_string,coordinate_sys=None):
+    gdb_quantity = len(gdb_path_list)
+    
+    if gdb_quantity == 0:
+        print(f'cannot identify any {locater_string} from the path list provided')
+        gdf_x = gpd.GeoDataFrame()
+        gdf_x['geometry'] = None
+        coord = coordinate_sys
+    
+    if gdb_quantity != 0:
+        layers_list = fiona.listlayers(gdb_path_list[0])
+        if locater_string in layers_list:
+            gdf_x = gpd.read_file(gdb_path_list[0], layer=f"{locater_string}")
+            coord = gdf_x.crs
+            gdf_x['Source_Path'] = os.path.basename(gdb_path_list[0])
+            if coordinate_sys!= None:
+                coord = coordinate_sys
+                gdf_x = gdf_x.to_crs(coord)
+            else:
+                pass
+        else:
+            gdf_x = gpd.GeoDataFrame()
+            gdf_x['geometry'] = None
+            coord = None
+    
+    if gdb_quantity > 1:
+        for i in range(1,gdb_quantity):
+            layers_list2 = fiona.listlayers(gdb_path_list[i])
+            if locater_string in layers_list2:
+                gdf_x2 = gpd.read_file(gdb_path_list[i], layer=f"{locater_string}")
+                coord2 = gdf_x2.crs
+                gdf_x2['Source_Path'] = os.path.basename(gdb_path_list[i])
+                if coord == None:
+                    coord = coord2
+                if coord2 != coord:
+                    print("\ncoordinate systems are not the same: will convert to match first gdb/gpkg in path list")
+                    gdf_x2 = gdf_x2.to_crs(gdf_x.crs)
+                gdf_x = pd.concat([gdf_x,gdf_x2])
+                gdf_x.reset_index(drop=True, inplace=True)
+            else:
+                pass
+    
+    print(f'After searching through {gdb_quantity} geodatabases/geopackages, there are now {len(gdf_x)} \"{locater_string}\" features')
+    return gdf_x
+
+
