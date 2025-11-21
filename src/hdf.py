@@ -848,7 +848,7 @@ def create_bc_from_junc(bc_connections,fid,fid_us,stage_data_ds,flow_data_ds,dss
     # #print(dss_matches_us[0])
     # if gradient_thresh < 0.75:
 
-    if rating_or_stage == "Stage Hydrograph":
+    if rating_or_stage == "stage_hydrograph":
         #assume ponding control and create stage hydrograph boundary condition instead
         #print warning if  the peak flow is close to the peak stage not controlling the peak stage. Assume 4 hours timestep difference at least.
         #if abs(max_stage_index - np.where(flows == flows.max())[0][0]) > 1:
@@ -961,7 +961,7 @@ def create_bc_from_junc(bc_connections,fid,fid_us,stage_data_ds,flow_data_ds,dss
             start=end
         return hg_name
     else:
-        assert rating_or_stage == "Rating Curve", f"{rating_or_stage} was not expected. Should be Rating Curve or Stage Hydrograph"
+        assert rating_or_stage == "rating_curve", f"{rating_or_stage} was not expected. Should be rating_curve or stage_hydrograph"
         #create new path name rating curve
         hg_parts = hg_all.split('/')
         hg_name = '/'.join([hg_parts[0],hg_parts[1],f'{hg_parts[2]}_rc','-','','',hg_parts[-2],hg_parts[-1]])
