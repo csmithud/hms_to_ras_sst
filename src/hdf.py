@@ -334,6 +334,8 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
         pathname_pattern ="/*/*/*/*/*/*/"
         dss_list = fid.getPathnameList(pathname_pattern,sort=1)
 
+        # print('currently at beginning of combining dss files',dss_list)
+
         #get relevant dss paths for external boundaries
         ext_bc_dict['dss_path'] = {i: None for i in ext_index}
         for i in ext_index:
@@ -374,12 +376,16 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
             ext_bc_dict['dss_path'][i] = hg_all
         #get relevant dss paths for internal boundaries
         int_bc_dict['dss_path'] = {i: None for i in int_index}
+        # print('preparing the internal boundary conditions')
+        # print('internal index',int_index)
         for i in int_index:
+            # print(f'processing internal boundary condition {i}')
             int_junc = int_bc_dict['junction'][i]
             #get relevant subbasins to re-write flow values
             int_sbs = j_connect_sub[int_junc]
             # print('subbasin and junction',int_sbs,int_junc)
             #only add flow location information if there are contibuting subbasins
+            # print('checking if internal junction has subbasins connected:',int_sbs)
             if int_sbs:
                 int_junc_finder = f'//{int_junc}/FLOW-COMBINE/[\d\w\S]+'
                 #get all relevant dss paths and condense using wildcard
@@ -416,16 +422,23 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
                 hg_name = hg_all[:hg_all.find('/FLOW-COMBINE/')]+'_SBS'+hg_all[hg_all.find('/FLOW-COMBINE/'):]
                 int_bc_dict['dss_path'][i] = hg_name
                 # print(hg_name)
+                # print('create_junc_from_subs start')
                 create_junc_from_subs(int_junc,int_sbs,fid, dss_list,hg_name)
+                # print('create_junc_from_subs end')
+        # print('int_index looped')
         
         #get relevant dss paths for reach internal boundaries
         int_r_bc_dict['dss_path'] = {i: None for i in int_r_index}
+        # print('int_r_index',int_r_index)
         for i in int_r_index:
+            # print(i)
             #get relevant junctions to re-write flow values
             reach = int_r_bc_dict['name'][i]
             us_junc = int_r_bc_dict['upstream'][i]
             subtraction = int(int_r_bc_dict['subtraction'][i])
             reduction = float(int_r_bc_dict['reduction'][i])
+
+            # print(us_junc)
 
             #create a negative flow add flow location information if there are contibuting subbasins
             assert us_junc, f"no upstream junction connected to reach {int_r_bc_dict['name'][i]} with losses"
@@ -435,14 +448,16 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
             dss_matches = list(filter(r.match, dss_list))
             all_data = dss_matches[0]
             hg_all = all_data
+            # print(hg_all)
             diff = [w for w in dss_matches[0].split('/') if w not in dss_matches[1].split('/')]
             for part in diff:
                 hg_all = hg_all.replace(part,'*')
             #create new path name
             hg_name = hg_all[:hg_all.find('/FLOW-COMBINE/')]+'_flow_reducer'+hg_all[hg_all.find('/FLOW-COMBINE/'):]
             int_r_bc_dict['dss_path'][i] = hg_name
+            # print('made it this far', i)
             create_junc_from_reach(us_junc,dss_matches,subtraction,reduction,fid,dss_list,hg_name)
-        
+        # print('int_r_index looped')
         #get relevant dss paths for external boundaries
         src_bc_dict['dss_path'] = {i: None for i in src_index}
         for i in src_index:
@@ -457,7 +472,7 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
             for part in diff:
                 hg_all = hg_all.replace(part,'*')
             src_bc_dict['dss_path'][i] = hg_all
-        
+        # print('src_index looped')
         #get start and end times
         int_junc = int_bc_dict['junction'][0]
         int_junc_finder = f'//{int_junc}/FLOW-COMBINE/[\d\w\S]+'
@@ -468,10 +483,12 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
         
         #set plan file names
         plan_out_name = outputs/f'{model_name}.p{start_id}'
-        print(plan_out_name)
+        # print(plan_out_name)
         flow_out_name = outputs/f'{model_name}.u{start_id}'
         #write updated flow file
-        
+        # print('writing updated flow file and plan file for plan id:',start_id)
+
+
         write_flow_file(domain_geo,bc_info,ext_bc_dict,ext_index,ext_bc_dict['in_flow_path'],flow_out_name,keep_exist_flow=False) #inflow path to pull first data from input folder and then the latter ones append to it.
         write_flow_file(domain_geo,bc_info,int_bc_dict,int_index,flow_out_name,flow_out_name)
         write_flow_file(domain_geo,bc_info,int_r_bc_dict,int_r_index,flow_out_name,flow_out_name)
@@ -514,6 +531,7 @@ def write_updated_ext_bc_files(domain_geo,dss_files,ext_index,ext_bc_dict,int_in
     with open(prj_out_name,'w') as p_o:
         p_o.write(new_prj)
 
+    print('completion of entire function')
 
 
 def write_plan_file(domain_geo,bc_info,in_plan_path,out_plan_path, start_date,end_date):
@@ -637,7 +655,7 @@ def update_flow_file_stage(dss_name,dss_path,in_flow_path,outflow_huc,domain_nam
     with open(in_flow_path, "w") as f_o:
         f_o.write(flow_update_out)
 
-def create_bc_from_junc(bc_connections,fid,fid_us,stage_data_ds,flow_data_ds,dss_matches_us,rating_or_stage):
+def create_bc_from_junc(bc_connections,fid,fid_us,stage_data_ds,flow_data_ds,dss_matches_us,rating_or_stage,event_us_flow_expected):
     """Writes a rating curve boundary condition to a dss file after reading information from a stage/flow hydrograph from a separate dss file.
     Parameters
     ----------
@@ -653,6 +671,10 @@ def create_bc_from_junc(bc_connections,fid,fid_us,stage_data_ds,flow_data_ds,dss
         a list of the flow data dss paths that will be read from for the downstream dss file
     dss_matches_us :
         A list of dss matches from the upstream event dss (fid_us)
+    rating_or_stage :
+        A dictionary with the model names and their respective downstream boundary condition
+    event_us_flow_expected :
+        The expected flow for the selected event for the current specific recurrence interval
     Returns
     -------
     String
@@ -994,12 +1016,13 @@ def create_bc_from_junc(bc_connections,fid,fid_us,stage_data_ds,flow_data_ds,dss
 
         #add max points + steeper last point for stability
         #stage
-        rc_stage_tmp+=[max_stage,max_stage+.5,max_stage+1.5]
+        rc_stage_tmp+=[max_stage-.5,max_stage,max_stage+1]
         rc_stage = np.array([rc_stage_tmp],dtype=np.float32) #np.array([[min_stage,max_stage-0.5,max_stage,max_stage+0.5]],dtype=np.float32)
 
         #flow
         rc_flow+=[max_flow_offset_l,max_flow_c,max_flow_offset_u]
-
+        rc_flow_ratio = (event_us_flow_expected/max_flow_c)
+        rc_flow = [item * rc_flow_ratio for item in rc_flow]
         #save to dss
         pdc = PairedDataContainer()
         pdc.pathname = hg_name
