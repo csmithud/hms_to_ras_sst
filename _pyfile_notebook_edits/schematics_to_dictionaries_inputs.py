@@ -7,10 +7,12 @@ import pathlib as pl
 
 home = pl.Path(os.getcwd())
 
+project = 'wy_fy23'
+
 #creation of folders as needed for inputs, outputs and working_outputs
-inputs = home/'inputs'/'wy22_dictionary_updates'/'HEC-HMS Models SST Schematics'
-outputs = home/'outputs'/'wy22_dictionary_updates'
-working_outputs = home/'outputs'/'wy22_dictionary_updates'/'working_outputs_dictionary'
+inputs = home/'inputs'/project/'schematics'
+outputs = home/'outputs'/project/'schematics_to_dict'
+working_outputs = home/'outputs'/project/'schematics_to_dict'/'working_outputs_dictionary'
 
 if not os.path.exists(inputs):
     os.makedirs(inputs)
@@ -26,10 +28,10 @@ schematic_input_type = '/*.gdb'
 
 #Paths to expected shapefiles
 sub_path = inputs/"bighorn_subbasins_merged_250721.shp" #path to the assigned subbasins shapefile.
-subb_field = "huc_mod" #huc10 assignment field name within the shapefile
+subb_field = "huc_mod" #huc10/model assignment field name within the shapefile
 
-dsj_path = inputs/"bighorn_draft_ds_junctions_250721.shp"#path to the downstream junctions
-dsj_field = "huc" #huc10 assignment field within shapefile
+dsj_path = inputs/"bighorn_draft_ds_junctions_250721.shp"#path to the downstream junctions shapefile.
+dsj_field = "huc" #huc10/model assignment field within shapefile
 
-perim_path = inputs/"bighorn_perimeters_draft_ver2_clean_250721.shp" #path to the perimeter shapefile
-perim_field = "huc_mod" #huc10 assignment field within the shapefile
+perim_path = inputs/"bighorn_perimeters_draft_ver2_clean_250721.shp" #path to the perimeter shapefile.
+perim_field = "huc_mod" #huc10/model assignment field within the shapefile

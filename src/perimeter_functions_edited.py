@@ -73,10 +73,12 @@ def retrieve_wbd_huc10_intersections(subbasins,outputs):
         print(f"Converting from {subbasins.crs} to EPSG:4326")
         subbasins = subbasins.to_crs('EPSG:4326')
         bbox = subbasins.total_bounds
+        # subbasins.plot()
     # Format bbox for the web service
     bbox_string = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
     # Set up the request
     url = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/5/query"
+    # print(bbox_string)
     params = {
         'where': '1=1',
         'outFields': '*',
@@ -103,6 +105,9 @@ def retrieve_wbd_huc10_intersections(subbasins,outputs):
             hucs.to_file(outputs/"huc10s_to_compare.shp")
             print('exported hucs to folder designated')
             return hucs
+        else:
+            print(f"Error fetching data: {response.status_code}")
+            return None
 
     except Exception as e:
         print(f"An error occurred: {str(e)}")

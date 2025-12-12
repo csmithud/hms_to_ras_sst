@@ -7,12 +7,14 @@ import pathlib as pl
 
 home = pl.Path(os.getcwd())
 
+project = 'wy_fy23'
+
 #creation of folders as needed for inputs, outputs and working_outputs
-inputs = home/'inputs'/'mt_powdert_perim'
-outputs = home/'outputs'/'mt_powdert_perim'
-working_outputs = home/'outputs'/'mt_powdert_perim'/'working_outputs'
+inputs = home/'inputs'/project/'schematics'
+outputs = home/'outputs'/project/'schematics_to_perim'
+working_outputs = home/'outputs'/project/'schematics_to_perim'/'working_outputs'
 #review if input data in geopackage or geodatabase format
-input_file_type = '/*.gpkg'
+input_file_type = '/*.gdb'
 
 #if the input/output folders do not exist, create said folders
 if not os.path.exists(inputs):
